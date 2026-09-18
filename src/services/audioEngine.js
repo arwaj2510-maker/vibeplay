@@ -1,6 +1,8 @@
 // Centralized Audio Engine for VibePlay
 // Manages HTML5 Audio element instance, Media Session API, Queue, Repeat & Shuffle
 
+import { createSynthesizedAudioBlob } from '../utils/audioGenerator';
+
 class AudioEngine {
   constructor() {
     this.audio = new Audio();
@@ -77,22 +79,38 @@ class AudioEngine {
   _initMediaSession() {
     if ('mediaSession' in navigator) {
       try {
-        navigator.mediaSession.setActionHandler('play', () => this.play());
-        navigator.mediaSession.setActionHandler('pause', () => this.pause());
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-          if (this.onPrevTrack) this.onPrevTrack();
+        navigator.mediaSession.setActionHandler('play', async () => {
+          await this.play();
         });
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-          if (this.onNextTrack) this.onNextTrack({ isEnded: false });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+          this.pause();
         });
+
+        navigator.mediaSession.setActionHandler('previoustrack', async () => {
+          if (this.onPrevTrack) {
+            await this.onPrevTrack();
+            await this.play();
+          }
+        });
+
+        navigator.mediaSession.setActionHandler('nexttrack', async () => {
+          if (this.onNextTrack) {
+            await this.onNextTrack({ isEnded: false });
+            await this.play();
+          }
+        });
+
         navigator.mediaSession.setActionHandler('seekbackward', (details) => {
           const skipTime = details.seekOffset || 10;
           this.seek(Math.max(this.audio.currentTime - skipTime, 0));
         });
+
         navigator.mediaSession.setActionHandler('seekforward', (details) => {
           const skipTime = details.seekOffset || 10;
           this.seek(Math.min(this.audio.currentTime + skipTime, this.duration || 0));
         });
+
         navigator.mediaSession.setActionHandler('seekto', (details) => {
           if (details.seekTime !== undefined) {
             this.seek(details.seekTime);
@@ -112,8 +130,9 @@ class AudioEngine {
           artist: track.artist || 'VibePlay',
           album: track.album || 'VibePlay Music',
           artwork: [
-            { src: track.coverArt, sizes: '300x300', type: 'image/png' },
-            { src: track.coverArt, sizes: '512x512', type: 'image/png' }
+            { src: track.coverArt, sizes: '96x96', type: 'image/svg+xml' },
+            { src: track.coverArt, sizes: '256x256', type: 'image/svg+xml' },
+            { src: track.coverArt, sizes: '512x512', type: 'image/svg+xml' }
           ]
         });
       } catch (e) {
@@ -156,7 +175,10 @@ class AudioEngine {
     }
 
     this.currentTrack = track;
+
+    // Immediately update lock screen metadata & status
     this._updateMediaSessionMetadata(track);
+    this._updateMediaSessionPlaybackState('playing');
 
     let audioSrc = '';
     if (track.blob) {
@@ -164,6 +186,16 @@ class AudioEngine {
       audioSrc = this.currentObjectUrl;
     } else if (track.src) {
       audioSrc = track.src;
+    } else if (track.preset) {
+      // Regenerate preset audio blob if needed
+      try {
+        const blob = await createSynthesizedAudioBlob(track.preset, track.duration || 30);
+        track.blob = blob;
+        this.currentObjectUrl = URL.createObjectURL(blob);
+        audioSrc = this.currentObjectUrl;
+      } catch (err) {
+        console.warn('Failed to create synthetic audio blob:', err);
+      }
     }
 
     if (audioSrc) {
