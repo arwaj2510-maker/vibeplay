@@ -14,6 +14,7 @@ import {
   getSetting
 } from '../services/db';
 import { extractFileMetadata, generateCoverArtSvg } from '../utils/metadataParser';
+import { syncUserLibraryToCloud } from '../services/cloudStorage';
 import confetti from 'canvas-confetti';
 
 const AudioContext = createContext(null);
@@ -244,7 +245,6 @@ export function AudioProvider({ children }) {
         setCurrentTrack(updated);
       }
       if (updated.isFavorite) {
-        // Trigger celebratory confetti effect
         confetti({
           particleCount: 25,
           spread: 50,
@@ -298,8 +298,7 @@ export function AudioProvider({ children }) {
   const editSongMetadata = async (songId, updates) => {
     const updated = await updateSongMetadata(songId, updates);
     if (updated) {
-      // Regenerate cover art if title/artist changed and using procedural SVG cover
-      if (updated.coverArt.startsWith('data:image/svg+xml')) {
+      if (updated.coverArt && updated.coverArt.startsWith('data:image/svg+xml')) {
         updated.coverArt = generateCoverArtSvg(updated.title, updated.artist, updated.id);
         await saveSong(updated);
       }
@@ -316,7 +315,6 @@ export function AudioProvider({ children }) {
     setSongs(prev => prev.filter(s => s.id !== songId));
     setQueue(prev => prev.filter(id => id !== songId));
     
-    // Refresh folders
     const updatedFolders = await getAllFolders();
     setFolders(updatedFolders);
 
@@ -381,6 +379,30 @@ export function AudioProvider({ children }) {
     }
   };
 
+  // LOAD CLOUD USER LIBRARY ON LOGIN
+  const loadCloudUserLibrary = async (cloudSongs, cloudFolders) => {
+    if (cloudSongs && cloudSongs.length > 0) {
+      for (const song of cloudSongs) {
+        await saveSong(song);
+      }
+    }
+    if (cloudFolders && cloudFolders.length > 0) {
+      for (const folder of cloudFolders) {
+        await saveFolder(folder);
+      }
+    }
+    const updatedSongs = await getAllSongs();
+    const updatedFolders = await getAllFolders();
+    setSongs(updatedSongs);
+    setFolders(updatedFolders);
+
+    if (updatedSongs.length > 0) {
+      setQueue(updatedSongs.map(s => s.id));
+      setCurrentTrack(updatedSongs[0]);
+      audioEngine.loadTrack(updatedSongs[0]);
+    }
+  };
+
   // BACKUP & SYNC HELPERS
   const exportLibraryBackup = () => {
     const backupData = {
@@ -436,7 +458,6 @@ export function AudioProvider({ children }) {
   // KEYBOARD ACCESSIBILITY LISTENERS
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ignore keyboard shortcuts if user is typing in an input field
       const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
       if (activeTag === 'input' || activeTag === 'textarea' || document.activeElement.isContentEditable) {
         return;
@@ -524,7 +545,8 @@ export function AudioProvider({ children }) {
       removeSongFromFolder,
       playFolder,
       exportLibraryBackup,
-      importLibraryBackup
+      importLibraryBackup,
+      loadCloudUserLibrary
     }}>
       {children}
     </AudioContext.Provider>

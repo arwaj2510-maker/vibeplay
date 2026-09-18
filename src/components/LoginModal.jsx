@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAudio } from '../context/AudioContext';
 import { X, UserCheck, Mail, Lock, User, Sparkles, Cloud, ArrowRight } from 'lucide-react';
 
 export default function LoginModal() {
@@ -14,6 +15,8 @@ export default function LoginModal() {
     isLoading
   } = useAuth();
 
+  const { loadCloudUserLibrary } = useAudio();
+
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -25,19 +28,28 @@ export default function LoginModal() {
     e.preventDefault();
     if (mode === 'login') {
       try {
-        await login(email, password);
+        const res = await login(email, password);
+        if (res && res.songs) {
+          await loadCloudUserLibrary(res.songs, res.folders);
+        }
       } catch (err) {}
     } else {
       if (!name.trim()) return;
       try {
-        await register(name, email, password);
+        const res = await register(name, email, password);
+        if (res && res.songs) {
+          await loadCloudUserLibrary(res.songs, res.folders);
+        }
       } catch (err) {}
     }
   };
 
   const handleDemoClick = async () => {
     try {
-      await loginAsDemo();
+      const res = await loginAsDemo();
+      if (res && res.songs) {
+        await loadCloudUserLibrary(res.songs, res.folders);
+      }
     } catch (err) {}
   };
 
