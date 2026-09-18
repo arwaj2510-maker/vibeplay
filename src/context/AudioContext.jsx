@@ -42,6 +42,7 @@ export function AudioProvider({ children }) {
 
   // Modals state
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState(null);
   const [editingSong, setEditingSong] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -355,8 +356,8 @@ export function AudioProvider({ children }) {
 
   const addSongToFolder = async (folderId, songId) => {
     const folder = folders.find(f => f.id === folderId);
-    if (folder && !folder.songIds.includes(songId)) {
-      const updated = { ...folder, songIds: [...folder.songIds, songId] };
+    if (folder && !(folder.songIds || []).includes(songId)) {
+      const updated = { ...folder, songIds: [...(folder.songIds || []), songId] };
       await saveFolder(updated);
       setFolders(prev => prev.map(f => f.id === folderId ? updated : f));
     }
@@ -365,7 +366,7 @@ export function AudioProvider({ children }) {
   const removeSongFromFolder = async (folderId, songId) => {
     const folder = folders.find(f => f.id === folderId);
     if (folder) {
-      const updated = { ...folder, songIds: folder.songIds.filter(id => id !== songId) };
+      const updated = { ...folder, songIds: (folder.songIds || []).filter(id => id !== songId) };
       await saveFolder(updated);
       setFolders(prev => prev.map(f => f.id === folderId ? updated : f));
     }
@@ -373,10 +374,62 @@ export function AudioProvider({ children }) {
 
   const playFolder = (folderId) => {
     const folder = folders.find(f => f.id === folderId);
-    if (!folder || folder.songIds.length === 0) return;
-    const folderSongs = songs.filter(s => folder.songIds.includes(s.id));
+    if (!folder || (folder.songIds || []).length === 0) return;
+    const folderSongs = songs.filter(s => (folder.songIds || []).includes(s.id));
     if (folderSongs.length > 0) {
       playTrack(folderSongs[0], folderSongs.map(s => s.id), folder.name);
+    }
+  };
+
+  // BACKUP & SYNC HELPERS
+  const exportLibraryBackup = () => {
+    const backupData = {
+      version: 1,
+      appName: 'VibePlay',
+      exportDate: new Date().toISOString(),
+      folders: folders,
+      favorites: songs.filter(s => s.isFavorite).map(s => s.id),
+      songsMetadata: songs.map(s => ({
+        id: s.id,
+        title: s.title,
+        artist: s.artist,
+        album: s.album,
+        duration: s.duration,
+        isFavorite: s.isFavorite,
+        coverArt: s.coverArt,
+        isDemo: s.isDemo
+      }))
+    };
+
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vibeplay-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importLibraryBackup = async (file) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (data.folders && Array.isArray(data.folders)) {
+        for (const folder of data.folders) {
+          await saveFolder(folder);
+        }
+        const updatedFolders = await getAllFolders();
+        setFolders(updatedFolders);
+      }
+      confetti({
+        particleCount: 45,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      setIsBackupModalOpen(false);
+    } catch (err) {
+      console.warn('Failed to import backup JSON file:', err);
     }
   };
 
@@ -439,6 +492,7 @@ export function AudioProvider({ children }) {
       isFullPlayerOpen,
       skipBadge,
       isFolderModalOpen,
+      isBackupModalOpen,
       editingFolder,
       editingSong,
       isImporting,
@@ -447,6 +501,7 @@ export function AudioProvider({ children }) {
       setSearchQuery,
       setIsFullPlayerOpen,
       setIsFolderModalOpen,
+      setIsBackupModalOpen,
       setEditingFolder,
       setEditingSong,
       playTrack,
@@ -467,7 +522,9 @@ export function AudioProvider({ children }) {
       deleteFolder,
       addSongToFolder,
       removeSongFromFolder,
-      playFolder
+      playFolder,
+      exportLibraryBackup,
+      importLibraryBackup
     }}>
       {children}
     </AudioContext.Provider>

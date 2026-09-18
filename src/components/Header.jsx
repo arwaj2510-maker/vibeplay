@@ -1,9 +1,9 @@
 import React from 'react';
 import { useAudio } from '../context/AudioContext';
-import { Search, Upload, Disc3, Sparkles } from 'lucide-react';
+import { Search, Upload, Disc3, HardDrive } from 'lucide-react';
 
 export default function Header() {
-  const { searchQuery, setSearchQuery, importAudioFiles, isImporting, songs } = useAudio();
+  const { searchQuery, setSearchQuery, importAudioFiles, setIsBackupModalOpen, songs } = useAudio();
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -13,7 +13,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-[#0b0c10]/80 backdrop-blur-xl border-b border-white/5 px-4 py-3 md:px-8 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 bg-[#0b0c10]/80 backdrop-blur-xl border-b border-white/5 px-4 py-3 md:px-8 flex items-center justify-between gap-4 select-none">
       {/* Mobile Branding */}
       <div className="flex md:hidden items-center gap-2.5 shrink-0">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 p-[1.5px]">
@@ -49,7 +49,17 @@ export default function Header() {
       </div>
 
       {/* Header Actions */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-2.5 shrink-0">
+        {/* Device Sync & Backup Button */}
+        <button
+          onClick={() => setIsBackupModalOpen(true)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-xs font-semibold text-purple-300 transition-all cursor-pointer"
+          title="Storage & Backup Info"
+        >
+          <HardDrive className="w-3.5 h-3.5 text-purple-400" />
+          <span className="hidden sm:inline">Storage & Sync</span>
+        </button>
+
         {/* Mobile Upload Button */}
         <label className="md:hidden flex items-center justify-center w-9 h-9 rounded-full bg-purple-600/30 border border-purple-500/30 text-purple-300 cursor-pointer active:scale-95">
           <Upload className="w-4 h-4" />
@@ -61,12 +71,6 @@ export default function Header() {
             className="hidden"
           />
         </label>
-
-        {/* Stats Pill */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
-          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-          <span>{songs.length} Tracks</span>
-        </div>
       </div>
     </header>
   );

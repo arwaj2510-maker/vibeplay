@@ -7,6 +7,7 @@ import MiniPlayer from './components/MiniPlayer';
 import FullPlayer from './components/FullPlayer';
 import FolderModal from './components/FolderModal';
 import EditMetadataModal from './components/EditMetadataModal';
+import BackupModal from './components/BackupModal';
 
 import Home from './pages/Home';
 import Library from './pages/Library';
@@ -59,6 +60,9 @@ function MainLayout() {
 
       {/* Edit Track Metadata Modal */}
       <EditMetadataModal />
+
+      {/* Storage & Backup Modal */}
+      <BackupModal />
     </div>
   );
 }
