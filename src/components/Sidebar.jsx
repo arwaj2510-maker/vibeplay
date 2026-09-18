@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAudio } from '../context/AudioContext';
+import { useAuth } from '../context/AuthContext';
 import {
   Home,
   Music2,
@@ -8,7 +9,9 @@ import {
   Plus,
   Upload,
   Disc3,
-  Sparkles
+  CloudCheck,
+  User,
+  LogOut
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -22,6 +25,8 @@ export default function Sidebar() {
     setEditingFolder,
     importAudioFiles
   } = useAudio();
+
+  const { user, setIsAuthModalOpen, logout } = useAuth();
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -66,11 +71,7 @@ export default function Sidebar() {
               key={item.id}
               onClick={() => {
                 setCurrentView(item.id);
-                if (item.id === 'folders') {
-                  setActiveFolderId(null);
-                } else {
-                  setActiveFolderId(null);
-                }
+                setActiveFolderId(null);
               }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer ${
                 isActive
@@ -150,15 +151,37 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Pro Badge */}
+      {/* Cloud User Profile Badge */}
       <div className="mt-4 pt-4 border-t border-white/5 px-2">
-        <div className="p-3 rounded-xl bg-gradient-to-b from-purple-950/40 to-slate-900/40 border border-purple-500/20 flex items-center gap-3">
-          <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
-          <div className="text-[11px] text-gray-400">
-            <span className="font-semibold text-gray-200 block">Offline & Local</span>
-            Background playback active
+        {user ? (
+          <div className="p-3 rounded-2xl bg-gradient-to-b from-purple-950/40 to-slate-900/40 border border-purple-500/30 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <div className="min-w-0">
+                <span className="font-bold text-xs text-white block truncate">{user.name}</span>
+                <span className="text-[10px] text-purple-300 font-medium">Cloud Synced</span>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="p-1.5 text-gray-400 hover:text-red-400 rounded-lg hover:bg-white/10 cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
-        </div>
+        ) : (
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="w-full p-3 rounded-2xl bg-gradient-to-b from-purple-950/40 to-slate-900/40 border border-purple-500/20 hover:border-purple-500/40 flex items-center gap-3 text-left transition-all cursor-pointer"
+          >
+            <User className="w-5 h-5 text-purple-400 shrink-0" />
+            <div className="text-[11px] text-gray-400">
+              <span className="font-semibold text-gray-200 block">Sign In / Register</span>
+              Sync songs to Mobile
+            </div>
+          </button>
+        )}
       </div>
     </aside>
   );

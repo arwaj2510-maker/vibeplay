@@ -1,9 +1,11 @@
 import React from 'react';
 import { useAudio } from '../context/AudioContext';
-import { Search, Upload, Disc3, HardDrive } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Search, Upload, Disc3, HardDrive, User, LogOut, CloudCheck, Sparkles } from 'lucide-react';
 
 export default function Header() {
-  const { searchQuery, setSearchQuery, importAudioFiles, setIsBackupModalOpen, songs } = useAudio();
+  const { searchQuery, setSearchQuery, importAudioFiles, setIsBackupModalOpen } = useAudio();
+  const { user, setIsAuthModalOpen, logout } = useAuth();
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -53,12 +55,35 @@ export default function Header() {
         {/* Device Sync & Backup Button */}
         <button
           onClick={() => setIsBackupModalOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-xs font-semibold text-purple-300 transition-all cursor-pointer"
+          className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-xs font-semibold text-purple-300 transition-all cursor-pointer"
           title="Storage & Backup Info"
         >
           <HardDrive className="w-3.5 h-3.5 text-purple-400" />
-          <span className="hidden sm:inline">Storage & Sync</span>
+          <span>Storage</span>
         </button>
+
+        {/* User Account / Cloud Login Pill */}
+        {user ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-500/40 text-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="font-semibold text-white max-w-[100px] truncate">{user.name}</span>
+            <button
+              onClick={logout}
+              className="p-1 text-gray-400 hover:text-red-400 rounded-full hover:bg-white/10 transition-colors ml-1 cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 transition-transform active:scale-95 cursor-pointer"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Login & Sync</span>
+          </button>
+        )}
 
         {/* Mobile Upload Button */}
         <label className="md:hidden flex items-center justify-center w-9 h-9 rounded-full bg-purple-600/30 border border-purple-500/30 text-purple-300 cursor-pointer active:scale-95">

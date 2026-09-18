@@ -1,4 +1,5 @@
 import React from 'react';
+import { AuthProvider } from './context/AuthContext';
 import { AudioProvider, useAudio } from './context/AudioContext';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
@@ -8,6 +9,7 @@ import FullPlayer from './components/FullPlayer';
 import FolderModal from './components/FolderModal';
 import EditMetadataModal from './components/EditMetadataModal';
 import BackupModal from './components/BackupModal';
+import LoginModal from './components/LoginModal';
 
 import Home from './pages/Home';
 import Library from './pages/Library';
@@ -63,14 +65,19 @@ function MainLayout() {
 
       {/* Storage & Backup Modal */}
       <BackupModal />
+
+      {/* User Login & Cloud Sync Modal */}
+      <LoginModal />
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AudioProvider>
-      <MainLayout />
-    </AudioProvider>
+    <AuthProvider>
+      <AudioProvider>
+        <MainLayout />
+      </AudioProvider>
+    </AuthProvider>
   );
 }
